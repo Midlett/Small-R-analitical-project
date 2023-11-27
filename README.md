@@ -1,0 +1,1 @@
+# Small-R-analitical-project
