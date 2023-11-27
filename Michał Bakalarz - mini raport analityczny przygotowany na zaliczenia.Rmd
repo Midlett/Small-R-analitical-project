@@ -1,0 +1,284 @@
+---
+title: "Mini raport analityczny przygotowany na zaliczenie kursu ZintegrUJ 'Język R wsparciem warsztatu badacza' "
+author: 
+- Michał Bakalarz^[michal.bakalarz@student.uj.edu.pl]
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r ładowanie i przygotowanie danych, echo=FALSE, include=FALSE}
+setwd("C:/Users/midle/Desktop/Michał Bakalarz - zadanie zaliczeniowe z warsztatów R")
+
+library(ggplot2)
+library(tidyverse)
+library(essurvey)
+library(foreign)
+library(haven)
+library(ggmosaic)
+library(dplyr)
+library(stats)
+library(ggstatsplot)
+library(vcd)
+library(psych)
+library(rcompanion)
+library(car)
+library(report)
+library(rlang)
+library(crosstable)
+library(knitr)
+library(flextable)
+library(gtsummary)
+
+ess <- read_sav("ESS9e03_1.sav")
+
+esspl = ess %>% filter(cntry == "PL") # tworzę przefiltrowany nowy zbiór z mieszkańcami PL
+
+zad1 = data.frame(esspl$gndr, esspl$stflife) # tworzę df do zad1 ze zmiennymi ("Gender" and "How satisfied with life as a whole")
+
+czad1 = na.omit(zad1) # usuwam braki danych z df zad1
+
+zad2 = data.frame(esspl$gndr, esspl$lrscale) # tworzę df do zad2 ze zmiennymi ("Gender" and "Placement on left right scale")
+
+czad2 = na.omit(zad2) # usuwam braki danych z df zad2
+
+zad3 = data.frame(esspl$netustm, esspl$stfeco) # tworzę df do zad3 ze zmiennymi ("Internet use, how much time on typical day, in minutes" and "How satisfied with present state of economy in country")
+
+czad3 = na.omit(zad3) # usuwam braki danych z df zad3
+
+reg_df = czad3[, c("esspl.stfeco", "esspl.netustm")]
+names(reg_df)[1:2] = c("niezależna", "zależna")
+
+sapply(reg_df, class)
+reg_df = as.data.frame(sapply(reg_df, as.numeric)) # df do regresji
+
+model = lm(zależna ~ niezależna, data = reg_df) # model Regresji
+```
+
+## Zmienna nominalna "gndr" i zmienna porządkowa "stflife"
+
+Opis zmiennej "gndr" 
+
+```{r Opis zmiennej1}
+str(esspl$gndr)
+
+describe(esspl$gndr)
+```
+
+Opis zmiennej "stflife"
+
+```{r Opis zmiennej2}
+str(esspl$stflife)
+
+describe(esspl$stflife)
+
+summary(czad1)
+```
+
+Tabela krzyżowa pommiędzy zmienną nominalna "gndr" i zmienna porządkowa "stflife"
+```{r tabela krzyżowa}
+tbl_cross(
+  czad1,
+  row = esspl.stflife,
+  col = esspl.gndr,
+  label = list(esspl.gndr ~ "Gender", 
+               esspl.stflife ~ "How satisfied with life as a whole"),
+  statistic = "{n} ({p}%)", 
+  digits = c(0, 1),
+  percent = c("column"),
+  margin = c("column", "row"),
+  missing = c("ifany"), 
+  missing_text = "Unknown",
+  margin_text = "Total"
+)
+
+```
+Wykres słupkowy z podziałem na grupy wg kategorii zmiennej "gndr"
+
+```{r wykres1}
+ggplot(czad1, aes(esspl.stflife)) + 
+  geom_bar(color = "steelblue", fill = "steelblue") +
+  facet_wrap(vars(esspl.gndr)) +
+  labs(title = "Life satisfaction by gender",
+       subtitle = "1 = Male, 2 = Female ",
+       y = "Count of respondents", x = "How satisfied with life as a whole")
+```
+Testy niezależności
+```{r test niezależności i siła związku1}
+tblzad1 = table(esspl$gndr, esspl$stflife)
+
+# chi2 test
+chisq.test(tblzad1) # brak zależności między płcią a satysfakcją z życia
+
+# Fisher test
+
+fisher = fisher.test(tblzad1, simulate.p.value=TRUE)
+fisher # test fishera potwierdza brak zależności pomiędzy płcią a satysfakcją z życia
+
+```
+\pagebreak
+
+H0 = Nie ma liniowego związku między satysfakcją z życia w Polsce, a płcią.
+
+H1 = Istnieje liniowy związek między satysfakcją z życia w Polsce, a płcią.
+
+Na podstawie testu Chi^2 przyjmujemy hipotezę zerową mówiącą, iż nie ma liniowego związku między analizowaną zmienną zależną, a daną zmienną niezależną. Zmienne w regresji są nieistotne statystycznie, ponieważ p>0,05.
+
+
+
+H0 = Nie istnieje zależność pomiędzy satysfakcją z życia w Polsce, a płcią.
+
+H1 = Istnieje zależność pomiędzy satysfakcją z życia w Polsce, a płcią.
+
+Na podstawie dokładnego testu Fishera przyjmujemy hipotezę zerową mówiącą, iż nie istnieje zależność między analizowaną zmienną zależną, a daną zmienną niezależną. Zmienne w regresji są nieistotne statystycznie, ponieważ p>0,05.
+
+
+Korelacja dwuseryjna (test siły związku)
+
+```{r statystyki opisowe111}
+b = biserial(esspl$stflife, esspl$gndr)
+b # korelacja dwuseryjna
+```
+
+## Zmienna nominalna "gndr" i zmienna ilościowa "lrscale"
+
+Opis zmiennej "gndr" 
+
+```{r statystyki opisowe22}
+str(esspl$gndr)
+
+describe(esspl$gndr)
+
+IQR(esspl$gndr)
+
+```
+
+Opis zmiennej "lrscale"
+
+```{r statystyki opisowe12}
+str(esspl$lrscale)
+
+describe(esspl$lrscale)
+
+IQR(na.omit(esspl$lrscale))
+
+summary(czad2)
+
+```
+
+Histogram w podziale na grupy wg kategorii zmiennej "gndr"
+ 
+```{r wykres2}
+ggplot(czad2, aes(esspl.lrscale)) + 
+  geom_histogram(binwidth = 1, color = "black", fill = "steelblue") +
+  facet_wrap(vars(esspl.gndr))+
+  labs(title = "Placement on left right scale by gender",
+       subtitle = "1 = Male, 2 = Female ",
+       y = "Count of respondents", x = "Placement on left right scale")
+```
+
+```{r test niezależności i siła związku2}
+```
+
+
+Analiza równości średnich (parametryczne): t-test i ANOVA
+
+```{r test niezależności i siła związku2}
+zależna2 = as.numeric(esspl$lrscale)
+niezależna2 = esspl$gndr
+
+describeBy(zależna2, group = niezależna2)
+
+t.test(zależna2 ~ niezależna2) # t-test, średnie w grupach nie różnią się przyjmuje h0
+
+res_aov = aov(zależna2 ~ niezależna2) # ANOVA
+summary(res_aov)
+```
+H0 = Średnie w grupach kobiet i mężczyzn nie różnią się.
+
+H1 = Średnie w grupach kobiet i mężczyzn różnią się.
+
+Na podstawie testu t przyjmujemy hipotezę zerową mówiącą, iż średnie w grupach nie różnią się. Zmienne w regresji są nieistotne statystycznie, ponieważ p>0,05.
+
+
+H0 = Nie ma liniowego związku pomiędzy uplasowaniem się na skali politycznej lewicy i prawicy w Polsce, a płcią.
+
+H1 = Istnieje liniowy związek pomiędzy uplasowaniem się na skali politycznej lewicy i prawicy w Polsce, a płcią.
+
+Na podstawie testu F przyjmujemy hipotezę zerową mówiącą, iż nie ma liniowego związku między analizowanymi zmiennymi. Zmienne w regresji są nieistotne statystycznie, ponieważ p>0,05.
+
+
+
+Sprawdzanie normalności rozkładu
+```{r statystyki opiswd}
+par(mfrow = c(1, 2)) 
+hist(res_aov$residuals) # histogram
+
+qqPlot(res_aov$residuals,
+       id = FALSE
+) # QQ-plot
+
+```
+
+Korelacja dwuseryjna (test siły związku)
+
+```{r statystyki opiwwqqs}
+b2 = biserial(esspl$lrscale, esspl$gndr)
+b2 # korelacja dwuseryjna
+
+```
+
+
+## Zmienna ilościowa "netustm" i zmienna ilościowa "stfeco"
+
+Opis zmiennej "netustm"
+
+```{r statystyki opisowe12222}
+str(esspl$netustm)
+
+describe(esspl$netustm)
+
+IQR(na.omit(esspl$netustm))
+
+```
+
+Opis zmiennej "stfeco"
+
+```{r statystyki opisowe1121}
+str(esspl$stfeco)
+
+describe(esspl$stfeco)
+
+IQR(na.omit(esspl$stfeco))
+
+summary(czad3) # podsumowanie df
+```
+
+```{r wykres3}
+ggplot(reg_df, aes(x = niezależna, y = zależna)) +
+  geom_point() +
+  stat_smooth()
+
+```
+
+```{r test niezależności i siła związku3}
+summary(model) # model Regresji
+
+cor(reg_df$niezależna, reg_df$zależna, method = c("pearson", "kendall", "spearman"))
+cor(na.omit(reg_df))
+cor(reg_df, use = "pairwise.complete.obs")
+```
+H0 = Nie ma liniowego związku pomiędzy przeciętną długością korzystania z internetu w ciągu dnia przedstawioną w minutach, a satysfakcją z aktualnej sytuacji ekonomicznej w Polsce.
+
+H1 = Istnieje liniowy związek pomiędzy przeciętną długością korzystania z internetu w ciągu dnia przedstawioną w minutach, a satysfakcją z aktualnej sytuacji ekonomicznej w Polsce.
+
+Wartość p statystyki F wynosi 0.2537, oznacza to, iż nie ma istotnego związku, pomiędzy przeciętną długością korzystania z internetu w ciągu dnia przedstawioną w minutach, a satysfakcją z aktualnej sytuacji ekonomicznej w Polsce. 
+
+Ujemna korelacja r Pearsona wskazuję na śladowy związek, pomiędzy przeciętną długością korzystania z internetu w ciągu dnia przedstawioną w minutach, a satysfakcją z aktualnej sytuacji ekonomicznej w Polsce. 
+
+
+
+
