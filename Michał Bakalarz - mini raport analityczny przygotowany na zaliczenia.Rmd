@@ -35,17 +35,17 @@ library(gtsummary)
 
 ess <- read_sav("ESS9e03_1.sav")
 
-esspl = ess %>% filter(cntry == "PL") # tworzę przefiltrowany nowy zbiór z mieszkańcami PL
+esspl = ess %>% filter(cntry == "PL") # tworze przefiltrowany nowy zbiór z mieszkańcami PL
 
-zad1 = data.frame(esspl$gndr, esspl$stflife) # tworzę df do zad1 ze zmiennymi ("Gender" and "How satisfied with life as a whole")
+zad1 = data.frame(esspl$gndr, esspl$stflife) # tworze df do zad1 ze zmiennymi ("Gender" and "How satisfied with life as a whole")
 
 czad1 = na.omit(zad1) # usuwam braki danych z df zad1
 
-zad2 = data.frame(esspl$gndr, esspl$lrscale) # tworzę df do zad2 ze zmiennymi ("Gender" and "Placement on left right scale")
+zad2 = data.frame(esspl$gndr, esspl$lrscale) # tworze df do zad2 ze zmiennymi ("Gender" and "Placement on left right scale")
 
 czad2 = na.omit(zad2) # usuwam braki danych z df zad2
 
-zad3 = data.frame(esspl$netustm, esspl$stfeco) # tworzę df do zad3 ze zmiennymi ("Internet use, how much time on typical day, in minutes" and "How satisfied with present state of economy in country")
+zad3 = data.frame(esspl$netustm, esspl$stfeco) # tworze df do zad3 ze zmiennymi ("Internet use, how much time on typical day, in minutes" and "How satisfied with present state of economy in country")
 
 czad3 = na.omit(zad3) # usuwam braki danych z df zad3
 
